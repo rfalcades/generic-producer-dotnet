@@ -1,3 +1,6 @@
+
+using Microsoft.Extensions.Logging;
+
 namespace generic_producer_dotnet
 {
     public class Program
@@ -7,8 +10,8 @@ namespace generic_producer_dotnet
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
+            builder.Services.AddLogging();
             builder.Services.AddEndpointsApiExplorer();
             //builder.Services.AddSwaggerGen();
 
@@ -22,6 +25,8 @@ namespace generic_producer_dotnet
             }
 
             app.UseAuthorization();
+
+            app.UseMiddleware<ProducerInterceptorMiddleware>();
 
             app.MapControllers();
 
