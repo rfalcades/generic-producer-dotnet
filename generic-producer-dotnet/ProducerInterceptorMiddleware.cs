@@ -6,28 +6,42 @@ namespace generic_producer_dotnet
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<ProducerInterceptorMiddleware> _logger;
+        private readonly Worker _worker;
 
-        public ProducerInterceptorMiddleware(RequestDelegate next, ILogger<ProducerInterceptorMiddleware> logger)
+        public ProducerInterceptorMiddleware(RequestDelegate next, ILogger<ProducerInterceptorMiddleware> logger, Worker worker)
         {
             _next = next;
             _logger = logger;
+            _worker = worker;
         }
 
         public async Task Invoke(HttpContext context)
         {
+            if (context.Request == null || !context.Request.Path.HasValue)
+                return;
 
-            _logger.LogInformation(
-                            string.Format("Request {{URL}} -> {0} {1} {2} {3}",
-                            context.Request?.Method,
-                            context.Request?.Host,
-                            context.Request?.Path.Value,
-                            context.Request?.QueryString.Value));
+            var request = context.Request;
 
-            using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
-            var reqBody = await reader.ReadToEndAsync();
-            _logger.LogInformation($"{{RequestBody}} -> {reqBody}");
+            if (request.Method == "POST")
+            {
+                var content = await _worker.GetBodyContent(request.Body);
+                var entity = await _worker.GetEntityName(request.Path.Value);
+
+                if (!String.IsNullOrEmpty(entity) && !String.IsNullOrEmpty(content))
+                {
+                    await _worker.Send(entity, content);
+                    _logger.LogInformation($"Sent to {entity}");
+                }
+                else
+                    _logger.LogInformation($"Entity or message empty!");
+            }
+            else
+            {
+                _logger.LogInformation($"Method not mapped: {request.Method}");
+            }
         }
 
+/*
         public async Task InvokeAntigo(HttpContext context) 
         {
             // First, get the incoming request
@@ -97,6 +111,8 @@ namespace generic_producer_dotnet
             //Return the string for the response, including the status code (e.g.  200, 404, 401, etc.)
             return $"{response.StatusCode}: {text}";
         }
+*/
+    
     }
 }
 

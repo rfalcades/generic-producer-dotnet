@@ -13,6 +13,8 @@ namespace generic_producer_dotnet
             builder.Services.AddControllers();
             builder.Services.AddLogging();
             builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddTransient<RabbitProducer>();
+            builder.Services.AddTransient<Worker>();
             //builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
